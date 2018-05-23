@@ -293,9 +293,72 @@ bail:
 	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
 }
 
+static void xtest_tee_test_4104(ADBG_Case_t *c)
+{
+	CK_RV rv;
+	CK_SLOT_ID slot;
+	CK_SESSION_HANDLE session[3];
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		return;
+
+	/* Open 3 sessions */
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[0]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[1]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[2]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	/* Close 2 of them */
+	rv = C_CloseSession(session[0]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_CloseSession(session[1]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	/* Close all remaing sessions */
+	rv = C_CloseAllSessions(slot);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	/* Should failed to close non existing session */
+	rv = C_CloseSession(session[2]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
+		goto bail;
+
+	/* Last open/closure of a session */
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[0]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_CloseSession(session[0]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[1]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+bail:
+	rv = close_lib();
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+}
+
 ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
 		"Initialize and close Cryptoki library");
 ADBG_CASE_DEFINE(regression, 4102, xtest_tee_test_4102,
 		"Connect token and get some token info");
 ADBG_CASE_DEFINE(regression, 4103, xtest_tee_test_4103,
 		"Login tests (TODO: still weak)");
+ADBG_CASE_DEFINE(regression, 4104, xtest_tee_test_4104,
+		"Open and close PKCS#11 sessions");
