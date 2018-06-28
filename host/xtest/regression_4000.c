@@ -4990,7 +4990,6 @@ out:
 	TEEC_CloseSession(&session);
 }
 
-// ASYM CRYPTO pkcs11 -----
 #ifdef CFG_SECURE_KEY_SERVICES
 /*
  * The test below belongs to the regression 41xx test. As it relies on test
@@ -5000,162 +4999,183 @@ out:
  */
 void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot);
 
-//CK_UTF8CHAR label_asym_pub[] = "Generic RSA public key for testing";
-CK_ATTRIBUTE rsa_key_pub_attr[] = {								
-		{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},	
-				      sizeof(CK_OBJECT_CLASS) }, 
-		{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) }, 
-		//{ CKA_LABEL, label_asym_pub, sizeof(label_asym_pub) - 1 },
-		{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },	
-		{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },	
-		{ CKA_MODULUS, (void *)NULL, 0 },	
-		{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },	
-	};
+CK_UTF8CHAR label_asym_pub[] = "Generic RSA public key for testing";
+CK_ATTRIBUTE rsa_key_pub_attr[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_LABEL, label_asym_pub, sizeof(label_asym_pub) - 1 },
+	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODULUS, (void *)NULL, 0 },
+	{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },
+};
 
-#define RSA_ATTR_BASE			4
-#define RSA_PUB_ATTR_MODULUS		(RSA_ATTR_BASE+0)
-#define RSA_PUB_ATTR_PUBLIC_EXPONENT	(RSA_ATTR_BASE+1)
-#define RSA_PUB_ATTR_COUNT		(RSA_ATTR_BASE+2)
+CK_UTF8CHAR label_asym_priv[] = "Generic RSA private key for testing";
+CK_ATTRIBUTE rsa_key_priv_attr[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_LABEL, label_asym_priv, sizeof(label_asym_priv)-1 },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODULUS, (void *)NULL, 0 },
+	{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },
+	{ CKA_PRIVATE_EXPONENT, (void *)NULL, 0 },
+	{ CKA_PRIME_1, (void *)NULL, 0 },
+	{ CKA_PRIME_2, (void *)NULL, 0 },
+	{ CKA_EXPONENT_1, (void *)NULL, 0 },
+	{ CKA_EXPONENT_2, (void *)NULL, 0 },
+	{ CKA_COEFFICIENT, (void *)NULL, 0 },
+};
 
-//CK_UTF8CHAR label_asym_priv[] = "Generic RSA private key for testing";
-CK_ATTRIBUTE rsa_key_priv_attr[] = {								
-		{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},	
-				       sizeof(CK_OBJECT_CLASS) }, 
-		{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) }, 
-		//{ CKA_LABEL, label_asym_priv, sizeof(label_asym_priv)-1 },
-		{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },	
-		{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) }, 
-		{ CKA_MODULUS, (void *)NULL, 0 },
-		{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },
-		{ CKA_PRIVATE_EXPONENT, (void *)NULL, 0 },
-		{ CKA_PRIME_1, (void *)NULL, 0 },	
-		{ CKA_PRIME_2, (void *)NULL, 0 },	
-		{ CKA_EXPONENT_1, (void *)NULL, 0 },	
-		{ CKA_EXPONENT_2, (void *)NULL, 0 },	
-		{ CKA_COEFFICIENT, (void *)NULL, 0 },	
-	};
+struct mechanism_converter {
+	CK_MECHANISM_TYPE ckMechanismType;
+	CK_VOID_PTR ckParameter;
+	CK_ULONG ckParameterLen;	/* in bytes */
+	uint32_t tee_algo;
+};
 
-#define RSA_PRIV_ATTR_MODULUS		(RSA_ATTR_BASE+0)
-#define RSA_PRIV_ATTR_PUBLIC_EXPONENT	(RSA_ATTR_BASE+1)
-#define RSA_PRIV_ATTR_PRIVATE_EXPONENT	(RSA_ATTR_BASE+2)
-#define RSA_PRIV_ATTR_PRIME_1		(RSA_ATTR_BASE+3)
-#define RSA_PRIV_ATTR_PRIME_2		(RSA_ATTR_BASE+4)
-#define RSA_PRIV_ATTR_EXPONENT_1	(RSA_ATTR_BASE+5)
-#define RSA_PRIV_ATTR_EXPONENT_2	(RSA_ATTR_BASE+6)
-#define RSA_PRIV_ATTR_COEFFICIENT	(RSA_ATTR_BASE+7)
-#define RSA_PRIV_ATTR_COUNT		(RSA_ATTR_BASE+8)
-
-typedef struct MECHANISM_CONVERTER {
-	CK_MECHANISM_TYPE	ckmt;
-	CK_VOID_PTR		ckParameter;
-	CK_ULONG		ckParameterLen;  /* in bytes */
-	uint32_t		tee;
-	uint32_t		sks;
-} MECHANISM_CONVERTER;
-
-// https://crypto.stackexchange.com/questions/37726/in-pkcs1-v2-2-should-mgf-be-based-on-the-same-hash-function-that-rsa-oaep-encr
-// assume optee uses the same hash for mgf, could look it up in source later
+/*
+ * This test assumes the regression 4006 uses the same hash algorithm for
+ * the mask generation function and the lessage. CK parameters not set below
+ * at set at runtime from regression 4006 test materials.
+ */
 CK_RSA_PKCS_PSS_PARAMS pss_sha1_params = {
-	CKM_SHA_1,
-	CKG_MGF1_SHA1,
-	0,			// default to 0, can be set later
+	.hashAlg = CKM_SHA_1,
+	.mgf = CKG_MGF1_SHA1,
 };
 
 CK_RSA_PKCS_PSS_PARAMS pss_sha224_params = {
-	CKM_SHA224,
-	CKG_MGF1_SHA224,
-	0,			// default to 0, can be set later
+	.hashAlg = CKM_SHA224,
+	.mgf = CKG_MGF1_SHA224,
 };
 
 CK_RSA_PKCS_PSS_PARAMS pss_sha256_params = {
-	CKM_SHA256,
-	CKG_MGF1_SHA256,
-	0,			// default to 0, can be set later
+	.hashAlg = CKM_SHA256,
+	.mgf = CKG_MGF1_SHA256,
 };
 
 CK_RSA_PKCS_PSS_PARAMS pss_sha384_params = {
-	CKM_SHA384,
-	CKG_MGF1_SHA384,
-	0,			// default to 0, can be set later
+	.hashAlg = CKM_SHA384,
+	.mgf = CKG_MGF1_SHA384,
 };
 
 CK_RSA_PKCS_PSS_PARAMS pss_sha512_params = {
-	CKM_SHA512,
-	CKG_MGF1_SHA512,
-	0,			// default to 0, can be set later
+	.hashAlg = CKM_SHA512,
+	.mgf = CKG_MGF1_SHA512,
 };
 
 CK_RSA_PKCS_OAEP_PARAMS oaep_sha1_params = {
-	CKM_SHA_1,
-	CKG_MGF1_SHA1,
-	0, 0, 0,
+	.hashAlg = CKM_SHA_1,
+	.mgf = CKG_MGF1_SHA1,
 };
 
 CK_RSA_PKCS_OAEP_PARAMS oaep_sha224_params = {
-	CKM_SHA224,
-	CKG_MGF1_SHA224,
-	0, 0, 0,
+	.hashAlg = CKM_SHA224,
+	.mgf = CKG_MGF1_SHA224,
 };
 
 CK_RSA_PKCS_OAEP_PARAMS oaep_sha256_params = {
-	CKM_SHA256,
-	CKG_MGF1_SHA256,
-	0, 0, 0,
+	.hashAlg = CKM_SHA256,
+	.mgf = CKG_MGF1_SHA256,
 };
 
 CK_RSA_PKCS_OAEP_PARAMS oaep_sha384_params = {
-	CKM_SHA384,
-	CKG_MGF1_SHA384,
-	0, 0, 0,
+	.hashAlg = CKM_SHA384,
+	.mgf = CKG_MGF1_SHA384,
 };
 
 CK_RSA_PKCS_OAEP_PARAMS oaep_sha512_params = {
-	CKM_SHA512,
-	CKG_MGF1_SHA512,
-	0, 0, 0,
+	.hashAlg = CKM_SHA512,
+	.mgf = CKG_MGF1_SHA512,
 };
 
-MECHANISM_CONVERTER mechanism_converter[] = {
-	{ (CK_MECHANISM_TYPE)CKM_RSA_X_509, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSA_NOPAD, (uint32_t)0 }, //TODO is this correct? https://crypto.stackexchange.com/questions/9593/ckm-rsa-pkcs-vs-ckm-rsa-x-509-mechanisms-in-pkcs11 
+#define MECHA_CONV_ITEM(_mecha, _params, _tee_algo) \
+	{ \
+		.ckMechanismType = (CK_MECHANISM_TYPE)(_mecha),	\
+		.ckParameter = _params, \
+		.ckParameterLen = sizeof(_params), \
+		.tee_algo = (uint32_t)(_tee_algo), \
+	}
 
-	{ (CK_MECHANISM_TYPE)CKM_SHA1_RSA_PKCS, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSASSA_PKCS1_V1_5_SHA1, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA224_RSA_PKCS, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSASSA_PKCS1_V1_5_SHA224, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA256_RSA_PKCS, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSASSA_PKCS1_V1_5_SHA256, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA384_RSA_PKCS, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSASSA_PKCS1_V1_5_SHA384, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA512_RSA_PKCS, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSASSA_PKCS1_V1_5_SHA512, (uint32_t)0 },
-
-	{ (CK_MECHANISM_TYPE)CKM_SHA1_RSA_PKCS_PSS, (CK_VOID_PTR) &pss_sha1_params, (CK_ULONG)sizeof(pss_sha1_params), (uint32_t)TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA1, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA224_RSA_PKCS_PSS, (CK_VOID_PTR) &pss_sha224_params, (CK_ULONG)sizeof(pss_sha224_params), (uint32_t)TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA224, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA256_RSA_PKCS_PSS, (CK_VOID_PTR) &pss_sha256_params, (CK_ULONG)sizeof(pss_sha256_params), (uint32_t)TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA384_RSA_PKCS_PSS, (CK_VOID_PTR) &pss_sha384_params, (CK_ULONG)sizeof(pss_sha384_params), (uint32_t)TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA384, (uint32_t)0 },
-	{ (CK_MECHANISM_TYPE)CKM_SHA512_RSA_PKCS_PSS, (CK_VOID_PTR) &pss_sha512_params, (CK_ULONG)sizeof(pss_sha512_params), (uint32_t)TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA512, (uint32_t)0 },
-
-	{ (CK_MECHANISM_TYPE)CKM_RSA_PKCS, (CK_VOID_PTR)NULL, (CK_ULONG)0, (uint32_t)TEE_ALG_RSAES_PKCS1_V1_5, (uint32_t)0 },   // source: https://cryptosense.com/blog/algorithm-choice-in-pkcs11-part-1-rsa-in-v2-20/
-
-	{ (CK_MECHANISM_TYPE)CKM_RSA_PKCS_OAEP, (CK_VOID_PTR) &oaep_sha1_params, (CK_ULONG)sizeof(oaep_sha1_params), (uint32_t)TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA1, (uint32_t)0 },   // hash algo in CK_PKCS_OAEP_PARAMS
-	{ (CK_MECHANISM_TYPE)CKM_RSA_PKCS_OAEP, (CK_VOID_PTR) &oaep_sha224_params, (CK_ULONG)sizeof(oaep_sha224_params), (uint32_t)TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA224, (uint32_t)0 },   
-	{ (CK_MECHANISM_TYPE)CKM_RSA_PKCS_OAEP, (CK_VOID_PTR) &oaep_sha256_params, (CK_ULONG)sizeof(oaep_sha256_params), (uint32_t)TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA256, (uint32_t)0 },   
-	{ (CK_MECHANISM_TYPE)CKM_RSA_PKCS_OAEP, (CK_VOID_PTR) &oaep_sha384_params, (CK_ULONG)sizeof(oaep_sha384_params), (uint32_t)TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA384, (uint32_t)0 },   
-	{ (CK_MECHANISM_TYPE)CKM_RSA_PKCS_OAEP, (CK_VOID_PTR) &oaep_sha512_params, (CK_ULONG)sizeof(oaep_sha512_params), (uint32_t)TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA512, (uint32_t)0 },   
+struct mechanism_converter mechanism_converter[] = {
+	MECHA_CONV_ITEM(CKM_RSA_X_509, NULL,
+			TEE_ALG_RSA_NOPAD),
+	MECHA_CONV_ITEM(CKM_SHA1_RSA_PKCS, NULL,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA1),
+	MECHA_CONV_ITEM(CKM_SHA224_RSA_PKCS, NULL,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA224),
+	MECHA_CONV_ITEM(CKM_SHA256_RSA_PKCS, NULL,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA256),
+	MECHA_CONV_ITEM(CKM_SHA384_RSA_PKCS, NULL,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA384),
+	MECHA_CONV_ITEM(CKM_SHA512_RSA_PKCS, NULL,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA512),
+	MECHA_CONV_ITEM(CKM_SHA1_RSA_PKCS_PSS, &pss_sha1_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA1),
+	MECHA_CONV_ITEM(CKM_SHA224_RSA_PKCS_PSS, &pss_sha224_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA224),
+	MECHA_CONV_ITEM(CKM_SHA256_RSA_PKCS_PSS, &pss_sha256_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256),
+	MECHA_CONV_ITEM(CKM_SHA384_RSA_PKCS_PSS, &pss_sha384_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA384),
+	MECHA_CONV_ITEM(CKM_SHA512_RSA_PKCS_PSS, &pss_sha512_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA512),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS, NULL,
+			TEE_ALG_RSAES_PKCS1_V1_5),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, &oaep_sha1_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA1),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, &oaep_sha224_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA224),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, &oaep_sha256_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA256),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, &oaep_sha384_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA384),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, &oaep_sha512_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA512),
 };
 
-CK_MECHANISM_TYPE tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha);
-
-CK_MECHANISM_TYPE tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha) {
+static CK_RV tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha)
+{
+	struct mechanism_converter *conv = mechanism_converter;
 	size_t n;
 
-	for (n = 0; n < ARRAY_SIZE(xtest_ac_cases); n++) {
-		if (mechanism_converter[n].tee == tee_alg) {
-			mecha->mechanism = mechanism_converter[n].ckmt;
-			mecha->pParameter = mechanism_converter[n].ckParameter;
-			mecha->ulParameterLen = mechanism_converter[n].ckParameterLen;
-			return mechanism_converter[n].ckmt;
+	for (n = 0; n < ARRAY_SIZE(xtest_ac_cases); n++, conv++) {
+		if (mechanism_converter[n].tee_algo == tee_alg) {
+			mecha->mechanism = conv->ckMechanismType;
+			mecha->pParameter = conv->ckParameter;
+			if (mecha->pParameter)
+				mecha->ulParameterLen = conv->ckParameterLen;
+			else
+				mecha->ulParameterLen = 0;
+
+			return CKR_OK;
 		}
 	}
 
-	return -1;
+	return CKR_GENERAL_ERROR;
 }
 
+static int set_ck_attr(CK_ATTRIBUTE *attrs, size_t count, CK_ULONG id,
+			CK_VOID_PTR *data, CK_ULONG size)
+{
+	size_t idx;
+
+	for (idx = 0; idx < count; idx++) {
+		if (attrs[idx].type == id) {
+			attrs[idx].pValue = data;
+			attrs[idx].ulValueLen = size;
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+#define SET_CK_ATTR(attrs, id, data, size) \
+	set_ck_attr((CK_ATTRIBUTE *)attrs, ARRAY_SIZE(attrs), id, \
+			(CK_VOID_PTR)data, (CK_ULONG)size)
 
 void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
@@ -5163,12 +5183,12 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
 	CK_OBJECT_HANDLE priv_key_handle = CK_INVALID_HANDLE;
 	CK_OBJECT_HANDLE pub_key_handle = CK_INVALID_HANDLE;
-	CK_MECHANISM_TYPE mechanism_type;
 	uint8_t out[512];
 	size_t out_size;
 	uint8_t out_enc[512];
 	size_t out_enc_size;
 	size_t n;
+	int subcase = 0;
 
 	rv = C_OpenSession(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION,
 			   NULL, 0, &session);
@@ -5176,204 +5196,231 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 		goto out;
 
 	for (n = 0; n < ARRAY_SIZE(xtest_ac_cases); n++) {
-		CK_MECHANISM_PTR mechanism;
-
-		mechanism = NULL;
-
+		CK_MECHANISM_PTR mechanism = NULL;
 		const struct xtest_ac_case *tv = xtest_ac_cases + n;
 
 		if (tv->level > level)
 			continue;
-		
-		// for now we only do rsa, if test case algo isn't rsa, skip it
+
+		/* Currently only support RSA */
 		if (TEE_ALG_GET_MAIN_ALG(tv->algo) != TEE_MAIN_ALGO_RSA)
 			continue;
 
-		Do_ADBG_BeginSubCase(c, "[pkcs11] Asym Crypto case %d algo 0x%x line %d",
-					 (int)n, (unsigned int)tv->algo,
-					 (int)tv->line);
+		Do_ADBG_BeginSubCase(c, "Asym Crypto case %d algo 0x%x line %d",
+				     (int)n, (unsigned int)tv->algo,
+				     (int)tv->line);
+		subcase = 1;
 
-		//// collect key attributes and create key and maybe more...
+		/* Collect key attributes and create key and maybe more... */
 		switch (TEE_ALG_GET_MAIN_ALG(tv->algo)) {
 		case TEE_MAIN_ALGO_RSA:
-			// create public key
-			rsa_key_pub_attr[RSA_PUB_ATTR_MODULUS		].pValue = (void *)tv->params.rsa.modulus;
-			rsa_key_pub_attr[RSA_PUB_ATTR_MODULUS		].ulValueLen = tv->params.rsa.modulus_len;
-			rsa_key_pub_attr[RSA_PUB_ATTR_PUBLIC_EXPONENT	].pValue = (void *)tv->params.rsa.pub_exp;
-			rsa_key_pub_attr[RSA_PUB_ATTR_PUBLIC_EXPONENT	].ulValueLen = tv->params.rsa.pub_exp_len;
+			if (SET_CK_ATTR(rsa_key_pub_attr, CKA_MODULUS,
+					tv->params.rsa.modulus,
+					tv->params.rsa.modulus_len) ||
+			    SET_CK_ATTR(rsa_key_pub_attr, CKA_PUBLIC_EXPONENT,
+					tv->params.rsa.pub_exp,
+					tv->params.rsa.pub_exp_len)) {
+				Do_ADBG_Log("Invalid test setup");
+				ADBG_EXPECT_TRUE(c, false);
+				goto out;
+			}
 
-			rv = C_CreateObject(session, rsa_key_pub_attr, RSA_PUB_ATTR_COUNT, &pub_key_handle);
+			rv = C_CreateObject(session, rsa_key_pub_attr,
+					    ARRAY_SIZE(rsa_key_pub_attr),
+					    &pub_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
-			// create private key
-			rsa_key_priv_attr[RSA_PRIV_ATTR_MODULUS			].pValue = (void *)tv->params.rsa.modulus;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_MODULUS			].ulValueLen = tv->params.rsa.modulus_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PUBLIC_EXPONENT		].pValue = (void *)tv->params.rsa.pub_exp;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PUBLIC_EXPONENT		].ulValueLen = tv->params.rsa.pub_exp_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PRIVATE_EXPONENT	].pValue = (void *)tv->params.rsa.priv_exp;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PRIVATE_EXPONENT	].ulValueLen = tv->params.rsa.priv_exp_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PRIME_1			].pValue = (void *)tv->params.rsa.prime1;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PRIME_1			].ulValueLen = tv->params.rsa.prime1_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PRIME_2			].pValue = (void *)tv->params.rsa.prime2;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_PRIME_2			].ulValueLen = tv->params.rsa.prime2_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_EXPONENT_1		].pValue = (void *)tv->params.rsa.exp1;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_EXPONENT_1		].ulValueLen = tv->params.rsa.exp1_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_EXPONENT_2		].pValue = (void *)tv->params.rsa.exp2;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_EXPONENT_2		].ulValueLen = tv->params.rsa.exp2_len;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_COEFFICIENT		].pValue = (void *)tv->params.rsa.coeff;
-			rsa_key_priv_attr[RSA_PRIV_ATTR_COEFFICIENT		].ulValueLen = tv->params.rsa.coeff_len;
-			
-			rv = C_CreateObject(session, rsa_key_priv_attr, RSA_PRIV_ATTR_COUNT, &priv_key_handle);
+			if (SET_CK_ATTR(rsa_key_priv_attr, CKA_MODULUS,
+					tv->params.rsa.modulus,
+					tv->params.rsa.modulus_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_PUBLIC_EXPONENT,
+					tv->params.rsa.pub_exp,
+					tv->params.rsa.pub_exp_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_PRIVATE_EXPONENT,
+					tv->params.rsa.priv_exp,
+					tv->params.rsa.priv_exp_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_PRIME_1,
+					tv->params.rsa.prime1,
+					tv->params.rsa.prime1_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_PRIME_2,
+					tv->params.rsa.prime2,
+					tv->params.rsa.prime2_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_EXPONENT_1,
+					tv->params.rsa.exp1,
+					tv->params.rsa.exp1_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_EXPONENT_2,
+					tv->params.rsa.exp2,
+					tv->params.rsa.exp2_len) ||
+			    SET_CK_ATTR(rsa_key_priv_attr, CKA_COEFFICIENT,
+					tv->params.rsa.coeff,
+					tv->params.rsa.coeff_len)) {
+				Do_ADBG_Log("Invalid test setup");
+				ADBG_EXPECT_TRUE(c, false);
+				goto out;
+			}
+
+			rv = C_CreateObject(session, rsa_key_priv_attr,
+					    ARRAY_SIZE(rsa_key_priv_attr),
+					    &priv_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
 			break;
 
-			// ....
 		default:
 			break;
 		}
-		
-		// create ckm template
-		mechanism_type = tee_alg2ckmt(tv->algo, mechanism);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, mechanism_type, !=, (CK_MECHANISM_TYPE)-1))
+
+		/* Fill Cryptoki mechanism structure from OP-TEE native vectors */
+	        rv = tee_alg2ckmt(tv->algo, mechanism);
+		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
-		if (TEE_ALG_GET_MAIN_ALG(tv->algo) == TEE_MAIN_ALGO_RSA) {
-			if (tv->params.rsa.salt_len > 0) {
-				((CK_RSA_PKCS_PSS_PARAMS_PTR)(mechanism->pParameter))->sLen = tv->params.rsa.salt_len;
-			}
+		if (TEE_ALG_GET_MAIN_ALG(tv->algo) == TEE_MAIN_ALGO_RSA &&
+		    tv->params.rsa.salt_len > 0) {
+			CK_VOID_PTR ptr = mechanism->pParameter;
+
+			((CK_RSA_PKCS_PSS_PARAMS_PTR)ptr)->sLen =
+				tv->params.rsa.salt_len;
 		}
-			
-		// do operations
-		out_size = sizeof(out);
+
 		memset(out, 0, sizeof(out));
-		out_enc_size = sizeof(out_enc);
 		memset(out_enc, 0, sizeof(out_enc));
+
 		switch (tv->mode) {
 		case TEE_MODE_ENCRYPT:
-
-			// encrypt
 			rv = C_EncryptInit(session, mechanism, pub_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
 			out_enc_size = sizeof(out_enc);
-			rv = C_Encrypt(session, (void *)tv->ptx, tv->ptx_len, (void *)out_enc, (unsigned long *) &out_enc_size);
+			rv = C_Encrypt(session,
+					(CK_VOID_PTR)tv->ptx, tv->ptx_len,
+					(CK_VOID_PTR)out_enc,
+					(CK_ULONG_PTR)&out_enc_size);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
-			
+
 			/*
 			 * A PS which is random is added when formatting the
 			 * message internally of the algorithm so we can't
 			 * verify against precomputed values, instead we use the
 			 * decrypt operation to see that output is correct.
 			 */
-
-			// decrypt
 			rv = C_DecryptInit(session, mechanism, priv_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
 			out_size = sizeof(out);
-			rv = C_Decrypt(session, (void *)out_enc, out_enc_size, out, (unsigned long *) &out_size);
+			rv = C_Decrypt(session,
+					(CK_VOID_PTR)out_enc, out_enc_size,
+					out, (CK_ULONG_PTR)&out_size);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
-				goto out;
-			
-			// check result
-			(void)ADBG_EXPECT_BUFFER(c, tv->ptx, tv->ptx_len, out,
-						 out_size);
+		                goto out;
+
+			ADBG_EXPECT_BUFFER(c, tv->ptx, tv->ptx_len,
+					   out, out_size);
 			break;
-			
+
 		case TEE_MODE_DECRYPT:
-			// decrypt
 			rv = C_DecryptInit(session, mechanism, priv_key_handle);
+			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		                goto out;
+
+			out_size = sizeof(out);
+			rv = C_Decrypt(session,
+					(CK_VOID_PTR)tv->ctx, tv->ctx_len,
+					out, (CK_ULONG_PTR) &out_size);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
-			out_size = sizeof(out);
-			rv = C_Decrypt(session, (void *)tv->ctx, tv->ctx_len, out, (unsigned long *) &out_size);
-			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
-				goto out;
-			
-			// check result
-			(void)ADBG_EXPECT_BUFFER(c, tv->ptx, tv->ptx_len, out,
-						 out_size);
+			ADBG_EXPECT_BUFFER(c, tv->ptx, tv->ptx_len,
+					   out, out_size);
 			break;
+
 		case TEE_MODE_SIGN:
-			// sign
 			rv = C_SignInit(session, mechanism, priv_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
 			out_enc_size = sizeof(out_enc);
-			rv = C_Decrypt(session, (void *)tv->ptx, tv->ptx_len, out, (unsigned long *) &out_size);
+			rv = C_Decrypt(session, (CK_VOID_PTR)tv->ptx, tv->ptx_len,
+						out, (CK_ULONG_PTR) &out_size);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
-				goto out;
-			
-				/*
-				 * The salt or K is random so we can't verify
-				 * signing against precomputed values, instead
-				 * we use the verify operation to see that
-				 * output is correct.
-				 */
-			
+		                goto out;
+
+			/*
+			 * The salt or K is random so we can't verify
+			 * signing against precomputed values, instead
+			 * we use the verify operation to see that
+			 * output is correct.
+			 */
 			if (TEE_ALG_GET_CHAIN_MODE(tv->algo) ==
-				TEE_CHAIN_MODE_PKCS1_PSS_MGF1 ||
-				tv->algo == TEE_ALG_DSA_SHA1 ||
-				tv->algo == TEE_ALG_DSA_SHA224 ||
-				tv->algo == TEE_ALG_DSA_SHA256 ||
-				TEE_ALG_GET_MAIN_ALG(tv->algo) ==
+						TEE_CHAIN_MODE_PKCS1_PSS_MGF1 ||
+			    tv->algo == TEE_ALG_DSA_SHA1 ||
+			    tv->algo == TEE_ALG_DSA_SHA224 ||
+			    tv->algo == TEE_ALG_DSA_SHA256 ||
+			    TEE_ALG_GET_MAIN_ALG(tv->algo) ==
 						TEE_MAIN_ALGO_ECDSA) {
-				// verify
-				rv = C_VerifyInit(session, mechanism, pub_key_handle);
-				if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+
+				rv = C_VerifyInit(session, mechanism,
+						  pub_key_handle);
+				if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
+								  CKR_OK))
 					goto out;
 
-				rv = C_Verify(session, (CK_BYTE_PTR)tv->ptx, (CK_ULONG)tv->ptx_len, (CK_BYTE_PTR)out, (CK_ULONG)out_size);
-				if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+				rv = C_Verify(session,
+						(CK_BYTE_PTR)tv->ptx,
+						(CK_ULONG)tv->ptx_len,
+						(CK_BYTE_PTR)out,
+						(CK_ULONG)out_size);
+				if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
+								  CKR_OK))
 					goto out;
-				
-
 			} else {
-				(void)ADBG_EXPECT_BUFFER(c, tv->ctx,
-							 tv->ctx_len, out,
-							 out_size);
+				ADBG_EXPECT_BUFFER(c, tv->ctx, tv->ctx_len,
+						   out, out_size);
 			}
-
 			break;
-		case TEE_MODE_VERIFY:
-			// verify
+
+	        case TEE_MODE_VERIFY:
 			rv = C_VerifyInit(session, mechanism, pub_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
-			rv = C_Verify(session, (CK_BYTE_PTR)(tv->ptx), (CK_ULONG)(tv->ptx_len), (CK_BYTE_PTR)(tv->ctx), (CK_ULONG)(tv->ctx_len));
+			rv = C_Verify(session, (CK_BYTE_PTR)(tv->ptx),
+						(CK_ULONG)(tv->ptx_len),
+						(CK_BYTE_PTR)(tv->ctx),
+						(CK_ULONG)(tv->ctx_len));
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
 			break;
+
 		default:
 			break;
 		}
-		
-		// free priv key obj
+
 		rv = C_DestroyObject(session, priv_key_handle);
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
+
 		priv_key_handle = CK_INVALID_HANDLE;
 
-		// free pub key obj
 		rv = C_DestroyObject(session, pub_key_handle);
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
-		pub_key_handle = CK_INVALID_HANDLE;
-		
-		Do_ADBG_EndSubCase(c, NULL);
-	}
 
+		pub_key_handle = CK_INVALID_HANDLE;
+
+		Do_ADBG_EndSubCase(c, NULL);
+		subcase = 0;
+	}
 out:
+	if (subcase)
+		Do_ADBG_EndSubCase(c, NULL);
+
 	rv = C_CloseSession(session);
 	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
 }
