@@ -5196,7 +5196,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 		goto out;
 
 	for (n = 0; n < ARRAY_SIZE(xtest_ac_cases); n++) {
-		CK_MECHANISM_PTR mechanism = NULL;
+		CK_MECHANISM mechanism;
 		const struct xtest_ac_case *tv = xtest_ac_cases + n;
 
 		if (tv->level > level)
@@ -5211,7 +5211,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 				     (int)tv->line);
 		subcase = 1;
 
-		/* Collect key attributes and create key and maybe more... */
+		/* Collect key attributes and create key */
 		switch (TEE_ALG_GET_MAIN_ALG(tv->algo)) {
 		case TEE_MAIN_ALGO_RSA:
 			if (SET_CK_ATTR(rsa_key_pub_attr, CKA_MODULUS,
@@ -5273,13 +5273,13 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 		}
 
 		/* Fill Cryptoki mechanism structure from OP-TEE native vectors */
-	        rv = tee_alg2ckmt(tv->algo, mechanism);
+	        rv = tee_alg2ckmt(tv->algo, &mechanism);
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
 		if (TEE_ALG_GET_MAIN_ALG(tv->algo) == TEE_MAIN_ALGO_RSA &&
 		    tv->params.rsa.salt_len > 0) {
-			CK_VOID_PTR ptr = mechanism->pParameter;
+			CK_VOID_PTR ptr = mechanism.pParameter;
 
 			((CK_RSA_PKCS_PSS_PARAMS_PTR)ptr)->sLen =
 				tv->params.rsa.salt_len;
@@ -5290,7 +5290,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 
 		switch (tv->mode) {
 		case TEE_MODE_ENCRYPT:
-			rv = C_EncryptInit(session, mechanism, pub_key_handle);
+			rv = C_EncryptInit(session, &mechanism, pub_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
@@ -5308,7 +5308,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 			 * verify against precomputed values, instead we use the
 			 * decrypt operation to see that output is correct.
 			 */
-			rv = C_DecryptInit(session, mechanism, priv_key_handle);
+			rv = C_DecryptInit(session, &mechanism, priv_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
@@ -5324,7 +5324,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 			break;
 
 		case TEE_MODE_DECRYPT:
-			rv = C_DecryptInit(session, mechanism, priv_key_handle);
+			rv = C_DecryptInit(session, &mechanism, priv_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		                goto out;
 
@@ -5340,7 +5340,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 			break;
 
 		case TEE_MODE_SIGN:
-			rv = C_SignInit(session, mechanism, priv_key_handle);
+			rv = C_SignInit(session, &mechanism, priv_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
@@ -5364,7 +5364,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 			    TEE_ALG_GET_MAIN_ALG(tv->algo) ==
 						TEE_MAIN_ALGO_ECDSA) {
 
-				rv = C_VerifyInit(session, mechanism,
+				rv = C_VerifyInit(session, &mechanism,
 						  pub_key_handle);
 				if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
 								  CKR_OK))
@@ -5385,7 +5385,7 @@ void run_xtest_tee_test_4115(ADBG_Case_t *c, CK_SLOT_ID slot)
 			break;
 
 	        case TEE_MODE_VERIFY:
-			rv = C_VerifyInit(session, mechanism, pub_key_handle);
+			rv = C_VerifyInit(session, &mechanism, pub_key_handle);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
 
